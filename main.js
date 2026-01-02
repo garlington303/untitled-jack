@@ -44,6 +44,9 @@ class VoxelWorld {
         this.chunks = new Map();
         this.heightMap = this.generateHeightMap();
 
+        // Timing
+        this.lastTime = performance.now();
+
         this.init();
     }
 
@@ -58,15 +61,15 @@ class VoxelWorld {
                 const wx = x / WORLD_SIZE;
                 const wz = z / WORLD_SIZE;
                 
-                // Sample noise in a way that wraps seamlessly
+                // Sample noise in a way that wraps seamlessly using 4D sampling
                 const nx = Math.cos(wx * 2 * Math.PI) / (2 * Math.PI);
-                const nz = Math.sin(wx * 2 * Math.PI) / (2 * Math.PI);
-                const ny = Math.cos(wz * 2 * Math.PI) / (2 * Math.PI);
+                const ny = Math.sin(wx * 2 * Math.PI) / (2 * Math.PI);
+                const nz = Math.cos(wz * 2 * Math.PI) / (2 * Math.PI);
                 const nw = Math.sin(wz * 2 * Math.PI) / (2 * Math.PI);
                 
                 const noiseValue = this.perlin.octaveNoise(
                     (nx + 1) * 100,
-                    (nz + 1) * 100,
+                    (ny + 1) * 100,
                     4,
                     0.5
                 );
@@ -305,9 +308,9 @@ class VoxelWorld {
         this.player.position.x = ((this.player.position.x % WORLD_SIZE) + WORLD_SIZE) % WORLD_SIZE;
         this.player.position.z = ((this.player.position.z % WORLD_SIZE) + WORLD_SIZE) % WORLD_SIZE;
 
-        // Get terrain height at player position
-        const heightX = Math.floor(this.player.position.x);
-        const heightZ = Math.floor(this.player.position.z);
+        // Get terrain height at player position with wrapped indices
+        const heightX = Math.floor(this.player.position.x) % WORLD_SIZE;
+        const heightZ = Math.floor(this.player.position.z) % WORLD_SIZE;
         const terrainHeight = this.heightMap[heightZ][heightX];
         
         // Keep player on ground
@@ -341,7 +344,10 @@ class VoxelWorld {
     animate() {
         requestAnimationFrame(() => this.animate());
 
-        const deltaTime = 1 / 60; // Assuming 60 FPS for simplicity
+        // Calculate frame-rate independent deltaTime
+        const currentTime = performance.now();
+        const deltaTime = (currentTime - this.lastTime) / 1000; // Convert to seconds
+        this.lastTime = currentTime;
 
         this.updatePlayer(deltaTime);
         this.updateCamera();
